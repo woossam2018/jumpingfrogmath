@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>개구리 징검다리 건너기</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Canvas Confetti (폭죽 효과) -->
+    <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
@@ -15,8 +15,8 @@
         body {
             font-family: 'Jua', sans-serif;
             background-color: #f0fdf4; 
-            touch-action: none; /* 태블릿 풀화면 제스처 방지 */
-            overflow: hidden; /* 스크롤바 방지 */
+            touch-action: none; /* 태블릿/모바일 풀화면 제스처 방지 */
+            overflow: hidden; /* 스크롤바 완벽 방지 */
         }
 
         .pond-bg {
@@ -43,12 +43,13 @@
             50% { transform: scale(1.05) translateY(-5px); }
         }
 
+        /* 개구리 점프 (반응형으로 덜 튀게 조절) */
         .jump-anim {
-            animation: jump 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation: jump 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
         @keyframes jump {
             0% { transform: translateY(0) scale(1) translateX(-50%); }
-            50% { transform: translateY(-80px) scale(1.1) translateX(-50%); }
+            50% { transform: translateY(-30px) scale(1.15) translateX(-45%); }
             100% { transform: translateY(0) scale(1) translateX(-50%); }
         }
 
@@ -61,16 +62,16 @@
             40%, 80% { transform: translateX(8px); }
         }
 
-        /* 말풍선이 숫자를 가리지 않도록 위치 위로 조정 */
+        /* 말풍선 사이즈 및 위치 반응형 최적화 */
         .ribbit-bubble {
             position: absolute;
-            top: -60px;
+            top: -30px;
             left: 50%;
             transform: translateX(-50%);
             background: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 24px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 16px;
             color: #16a34a;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             opacity: 0;
@@ -78,13 +79,17 @@
             z-index: 30;
             white-space: nowrap;
         }
+        @media (min-width: 640px) {
+            .ribbit-bubble { top: -40px; padding: 6px 16px; font-size: 20px; }
+        }
+        
         .ribbit-bubble::after {
             content: '';
             position: absolute;
-            bottom: -8px;
+            bottom: -6px;
             left: 50%;
             transform: translateX(-50%);
-            border-width: 8px 8px 0;
+            border-width: 6px 6px 0;
             border-style: solid;
             border-color: white transparent transparent transparent;
         }
@@ -93,7 +98,9 @@
         }
         @keyframes floatUp {
             0% { opacity: 1; transform: translate(-50%, 0) scale(0.8); }
-            100% { opacity: 0; transform: translate(-50%, -40px) scale(1); }
+            20% { transform: translate(-50%, -10px) scale(1.1); }
+            80% { opacity: 1; transform: translate(-50%, -20px) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -30px) scale(1); }
         }
 
         .btn-choice {
@@ -105,86 +112,89 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col bg-[#f0fdf4] py-4 md:py-8 px-4 md:px-12 relative">
 
-    <!-- 홈 버튼: 화면 제일 우측 하단 고정 -->
-    <button id="btn-home" onclick="resetGame()" class="hidden fixed bottom-4 right-4 md:bottom-8 md:right-8 bg-white hover:bg-green-50 text-green-700 text-lg font-bold py-2 px-4 md:py-3 md:px-6 rounded-full shadow-[0_4px_0_#86efac] border-4 border-green-300 z-[100] flex items-center gap-2 active:translate-y-1 active:shadow-none transition-all">
+<!-- 100dvh를 사용하여 모바일 브라우저 주소창 높이 변화에도 완벽 대응 -->
+<body class="h-[100dvh] w-screen flex flex-col bg-[#f0fdf4] py-2 px-2 sm:py-4 sm:px-6 relative">
+
+    <!-- 홈 버튼 (기기 상관없이 화면 최우측 하단 여백 보장) -->
+    <button id="btn-home" onclick="resetGame()" class="hidden fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white hover:bg-green-50 text-green-700 text-sm sm:text-lg font-bold py-2 px-3 sm:py-3 sm:px-5 rounded-full shadow-[0_4px_0_#86efac] border-2 sm:border-4 border-green-300 z-[100] flex items-center gap-1 sm:gap-2 active:translate-y-1 active:shadow-none transition-all">
         <span>🏠</span> 처음으로
     </button>
 
     <!-- 고정 헤더 -->
-    <div class="w-full text-center z-10 flex-shrink-0 mb-2 md:mb-4">
-        <h1 id="main-title" class="text-3xl md:text-4xl lg:text-5xl text-green-600 drop-shadow-sm font-bold">🐸 개구리 징검다리 건너기 🐸</h1>
+    <div class="w-full text-center z-10 flex-shrink-0 mb-1 md:mb-2 mt-1 sm:mt-0">
+        <h1 id="main-title" class="text-2xl sm:text-3xl md:text-5xl text-green-600 drop-shadow-sm font-bold truncate">🐸 개구리 징검다리 건너기 🐸</h1>
     </div>
 
-    <!-- 메인 게임 영역 (연못) -->
-    <div class="relative w-full max-w-7xl mx-auto flex-1 pond-bg rounded-[2rem] md:rounded-[3rem] overflow-hidden border-4 md:border-8 border-blue-200 shadow-xl">
+    <!-- 메인 게임 영역 (flex-1과 min-h-0을 결합하여 하단 버튼 공간이 부족할 때 연못 크기를 자동으로 줄임) -->
+    <div class="relative w-full max-w-7xl mx-auto flex-1 min-h-0 pond-bg rounded-2xl sm:rounded-[3rem] overflow-hidden border-4 sm:border-8 border-blue-200 shadow-xl">
         
-        <!-- 물결 장식 -->
-        <div class="absolute top-10 left-10 w-20 h-4 border-b-4 border-blue-300 rounded-[50%] opacity-50"></div>
-        <div class="absolute top-32 right-20 w-32 h-4 border-b-4 border-blue-300 rounded-[50%] opacity-50"></div>
+        <!-- 물결 장식 (반응형 숨김) -->
+        <div class="hidden sm:block absolute top-10 left-10 w-20 h-4 border-b-4 border-blue-300 rounded-[50%] opacity-50"></div>
+        <div class="hidden md:block absolute top-32 right-20 w-32 h-4 border-b-4 border-blue-300 rounded-[50%] opacity-50"></div>
 
         <!-- 징검다리 트랙 -->
         <div id="track" class="absolute top-0 h-full flex items-start transition-transform duration-500 ease-in-out" style="left: 50%; transform: translateX(0);">
             
-            <!-- 출발지 (풀밭) -->
-            <div id="start-block" class="w-32 md:w-40 lg:w-48 h-full bg-green-500 rounded-r-[4rem] border-r-8 border-green-600 flex-shrink-0 flex items-start pt-8 md:pt-12 justify-end pr-6 md:pr-8">
-                <span class="text-2xl md:text-3xl lg:text-4xl text-green-100 font-bold">출발!</span>
+            <!-- 출발지 -->
+            <div id="start-block" class="w-20 sm:w-32 md:w-48 h-full bg-green-500 rounded-r-[2rem] sm:rounded-r-[4rem] border-r-4 sm:border-r-8 border-green-600 flex-shrink-0 flex items-start pt-6 sm:pt-10 justify-end pr-2 sm:pr-8">
+                <span class="text-lg sm:text-2xl md:text-4xl text-green-100 font-bold">출발!</span>
             </div>
             
-            <!-- 징검다리 공간 (4개 이상 확보를 위한 간격 조절) -->
-            <div id="stones-container" class="relative flex items-start gap-[60px] md:gap-[75px] lg:gap-[90px] pl-[60px] md:pl-[75px] lg:pl-[90px] pr-20 h-full">
+            <!-- 징검다리 공간 (동적 생성) -->
+            <div id="stones-container" class="relative flex items-start h-full">
                 <!-- +숫자 표시 -->
-                <div id="floating-plus" class="absolute top-[80px] md:top-[100px] lg:top-[120px] flex items-center justify-center w-[60px] md:w-[75px] lg:w-[90px] -translate-y-1/2 opacity-0 transition-all duration-500 z-20 pointer-events-none">
-                    <span class="animate-bounce text-4xl md:text-4xl lg:text-5xl text-orange-500 font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]"></span>
+                <div id="floating-plus" class="absolute flex items-center justify-center opacity-0 transition-all duration-500 z-20 pointer-events-none">
+                    <span class="animate-bounce text-2xl sm:text-4xl md:text-5xl text-orange-500 font-black drop-shadow-md"></span>
                 </div>
             </div>
             
-            <!-- 도착지 (풀밭) -->
-            <div id="finish-line" class="w-32 md:w-40 lg:w-48 h-full bg-green-500 rounded-l-[4rem] border-l-8 border-green-600 flex-shrink-0 flex items-start pt-8 md:pt-12 justify-start pl-6 md:pl-8 hidden">
-                <span class="text-2xl md:text-3xl lg:text-4xl text-yellow-300 font-bold">도착! 🎉</span>
+            <!-- 도착지 -->
+            <div id="finish-line" class="w-20 sm:w-32 md:w-48 h-full bg-green-500 rounded-l-[2rem] sm:rounded-l-[4rem] border-l-4 sm:border-l-8 border-green-600 flex-shrink-0 flex items-start pt-6 sm:pt-10 justify-start pl-2 sm:pl-8 hidden">
+                <span class="text-lg sm:text-2xl md:text-4xl text-yellow-300 font-bold">도착!</span>
             </div>
         </div>
 
         <!-- 중앙 고정 개구리 -->
-        <div id="frog" class="absolute bottom-2 md:bottom-6 text-[4rem] md:text-[5rem] lg:text-[6.5rem] z-20 origin-bottom" style="left: 50%; transform: translateX(-50%);">
+        <div id="frog" class="absolute bottom-1 sm:bottom-2 md:bottom-4 text-[3.5rem] sm:text-[4.5rem] md:text-[6rem] z-20 origin-bottom" style="left: 50%; transform: translateX(-50%);">
             🐸
             <div id="ribbit-text" class="ribbit-bubble">개굴!</div>
         </div>
     </div>
 
-    <!-- 통합 하단 컨트롤 패널 -->
-    <div class="w-full max-w-5xl mx-auto h-[130px] md:h-[150px] lg:h-[180px] mt-2 md:mt-4 relative flex-shrink-0">
+    <!-- 하단 컨트롤 패널 (h-[20vh] 등으로 동적 높이 배정, 공간 부족시 연못이 양보함) -->
+    <div class="w-full max-w-5xl mx-auto h-[25vh] min-h-[140px] max-h-[220px] mt-2 sm:mt-4 relative flex-shrink-0">
         
         <!-- 1. 난이도 선택 화면 -->
         <div id="panel-start" class="absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-300">
-            <p class="text-lg md:text-xl lg:text-2xl text-gray-700 mb-3 font-bold">어떤 숫자로 뛰어세기를 해볼까요?</p>
-            <div class="flex flex-wrap justify-center gap-2 md:gap-4" id="difficulty-buttons">
+            <p class="text-base sm:text-lg md:text-2xl text-gray-700 mb-2 sm:mb-4 font-bold">어떤 숫자로 뛰어세기를 해볼까요?</p>
+            <!-- 줄바꿈(flex-wrap) 허용으로 화면 좁을때 밑으로 내려감 -->
+            <div class="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 px-2" id="difficulty-buttons">
                 <!-- JS로 자동 생성 -->
             </div>
         </div>
 
         <!-- 2. 게임 진행 화면 -->
         <div id="panel-game" class="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
-            <h2 id="question-text" class="text-xl md:text-2xl lg:text-3xl text-gray-800 mb-3 md:mb-5 bg-white py-2 px-6 rounded-full shadow-sm border-2 border-green-300 inline-block">
-                다음 징검다리의 숫자는? <span class="text-sm md:text-lg lg:text-xl text-green-600 ml-2">(+뛰어세기를 해봐요!)</span>
+            <h2 id="question-text" class="text-base sm:text-xl md:text-2xl text-gray-800 mb-2 sm:mb-4 bg-white py-1 sm:py-2 px-4 sm:px-6 rounded-full shadow-sm border-2 border-green-300 inline-block">
+                다음 징검다리의 숫자는? <span class="text-xs sm:text-sm md:text-lg text-green-600 ml-1 sm:ml-2">(+뛰어세기를 해봐요!)</span>
             </h2>
-            <div id="choices" class="flex justify-center gap-4 md:gap-8">
+            <div id="choices" class="flex flex-wrap justify-center gap-3 sm:gap-6 md:gap-8">
                 <!-- 선택지 버튼 -->
             </div>
         </div>
 
         <!-- 3. 결과 화면 -->
         <div id="panel-result" class="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
-            <h2 class="text-2xl md:text-3xl lg:text-4xl text-green-600 mb-4 animate-bounce font-bold">대단해요! 모두 건넜어요! 🎉</h2>
-            <button onclick="resetGame()" class="text-xl md:text-2xl lg:text-3xl bg-yellow-400 hover:bg-yellow-300 text-yellow-900 py-3 md:py-4 px-10 rounded-full shadow-[0_6px_0_#ca8a04] active:shadow-[0_0px_0_#ca8a04] active:translate-y-[6px] transition-all border-4 border-yellow-200 font-bold">
+            <h2 class="text-xl sm:text-3xl md:text-4xl text-green-600 mb-3 sm:mb-5 animate-bounce font-bold">대단해요! 모두 건넜어요! 🎉</h2>
+            <button onclick="resetGame()" class="text-lg sm:text-2xl md:text-3xl bg-yellow-400 hover:bg-yellow-300 text-yellow-900 py-2 sm:py-4 px-6 sm:px-10 rounded-full shadow-[0_4px_0_#ca8a04] sm:shadow-[0_6px_0_#ca8a04] active:translate-y-1 sm:active:translate-y-[6px] active:shadow-none transition-all border-2 sm:border-4 border-yellow-200 font-bold">
                 다른 숫자로 또 하기
             </button>
         </div>
     </div>
 
     <script>
-        // Web Audio API를 이용한 개구리 효과음 생성 함수
+        // Web Audio API를 이용한 개구리 효과음
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playRibbit() {
             if(audioCtx.state === 'suspended') { audioCtx.resume(); }
@@ -205,6 +215,11 @@
         let currentStep = 0; 
         const totalSteps = 10;
         let isAnimating = false;
+
+        // 반응형 수치 기준 변수 (화면 너비에 따라 돌 사이의 간격 조정)
+        let gapSize = 50; 
+        let plSize = 50;
+        let stoneBaseOffset = 0;
 
         const btnHome = document.getElementById('btn-home');
         const mainTitle = document.getElementById('main-title');
@@ -231,11 +246,18 @@
             });
         }
 
+        function getResponsiveGap() {
+            const width = window.innerWidth;
+            if (width < 640) return 40;      // 모바일 세로
+            if (width < 768) return 60;      // 모바일 가로
+            return 80;                       // 태블릿 이상
+        }
+
         function init() {
             difficultyButtons.innerHTML = '';
             for (let i = 2; i <= 9; i++) {
                 const btn = document.createElement('button');
-                btn.className = 'bg-white hover:bg-green-100 text-green-600 text-xl md:text-2xl lg:text-3xl font-bold py-2 md:py-3 px-4 md:px-6 rounded-full border-4 border-green-300 shadow-[0_4px_0_#86efac] active:translate-y-1 active:shadow-none transition-all';
+                btn.className = 'bg-white hover:bg-green-100 text-green-600 text-base sm:text-xl md:text-3xl font-bold py-1.5 px-3 sm:py-2 sm:px-4 md:py-3 md:px-6 rounded-full border-2 sm:border-4 border-green-300 shadow-[0_3px_0_#86efac] active:translate-y-1 active:shadow-none transition-all';
                 btn.innerText = `${i}씩`;
                 btn.onclick = () => startGame(i);
                 difficultyButtons.appendChild(btn);
@@ -244,12 +266,12 @@
         }
 
         function startGame(multiplier) {
-            // 첫 상호작용 시 오디오 컨텍스트 활성화 (브라우저 정책 대응)
             if(audioCtx.state === 'suspended') { audioCtx.resume(); }
 
             currentMultiplier = multiplier;
             currentStep = 0;
             isAnimating = false;
+            gapSize = getResponsiveGap();
 
             mainTitle.innerText = `🐸 개구리 ${multiplier}씩 뛰어 징검다리 건너기 🐸`;
 
@@ -267,14 +289,20 @@
                 if(child.id !== 'floating-plus') stonesContainer.removeChild(child);
             });
 
+            // 화면 크기에 맞춘 gap(간격)과 padding-left(시작 여백) 설정
+            stonesContainer.style.gap = `${gapSize}px`;
+            stonesContainer.style.paddingLeft = `${gapSize}px`;
+            stonesContainer.style.paddingRight = '80px'; // 넉넉한 뒷 여백
+
             for (let i = 1; i <= totalSteps; i++) {
                 const wrapper = document.createElement('div');
                 wrapper.id = `wrapper-${i}`;
-                wrapper.className = 'relative flex-shrink-0 flex flex-col items-center mt-8 md:mt-10 lg:mt-12';
+                wrapper.className = 'relative flex-shrink-0 flex flex-col items-center mt-4 sm:mt-8 md:mt-12';
 
                 const stone = document.createElement('div');
                 stone.id = `stone-${i}`;
-                stone.className = 'stone flex-shrink-0 w-[90px] h-[90px] md:w-[100px] md:h-[100px] lg:w-[130px] lg:h-[130px] rounded-full flex items-center justify-center text-4xl md:text-4xl lg:text-5xl text-white font-bold opacity-30 z-10';
+                // 기기 크기에 반응하는 돌 크기
+                stone.className = 'stone flex-shrink-0 w-[60px] h-[60px] sm:w-[90px] sm:h-[90px] md:w-[120px] md:h-[120px] rounded-full flex items-center justify-center text-2xl sm:text-3xl md:text-5xl text-white font-bold opacity-30 z-10';
                 
                 wrapper.appendChild(stone);
                 stonesContainer.appendChild(wrapper);
@@ -287,26 +315,30 @@
                 if (!stone) continue;
 
                 if (i <= currentStep) {
-                    stone.className = 'stone flex-shrink-0 w-[90px] h-[90px] md:w-[100px] md:h-[100px] lg:w-[130px] lg:h-[130px] rounded-full flex items-center justify-center text-4xl md:text-4xl lg:text-5xl text-white font-bold z-10 relative';
+                    stone.className = 'stone flex-shrink-0 w-[60px] h-[60px] sm:w-[90px] sm:h-[90px] md:w-[120px] md:h-[120px] rounded-full flex items-center justify-center text-2xl sm:text-3xl md:text-5xl text-white font-bold z-10 relative';
                     stone.innerText = currentMultiplier * i;
                 } else if (i === currentStep + 1) {
-                    stone.className = 'stone-question flex-shrink-0 w-[90px] h-[90px] md:w-[100px] md:h-[100px] lg:w-[130px] lg:h-[130px] rounded-full flex items-center justify-center text-5xl md:text-5xl lg:text-6xl font-bold z-10 relative';
+                    stone.className = 'stone-question flex-shrink-0 w-[60px] h-[60px] sm:w-[90px] sm:h-[90px] md:w-[120px] md:h-[120px] rounded-full flex items-center justify-center text-3xl sm:text-4xl md:text-6xl font-bold z-10 relative';
                     stone.innerText = '?';
                 } else {
-                    stone.className = 'stone flex-shrink-0 w-[90px] h-[90px] md:w-[100px] md:h-[100px] lg:w-[130px] lg:h-[130px] rounded-full flex items-center justify-center bg-green-200 opacity-40 z-10 relative';
+                    stone.className = 'stone flex-shrink-0 w-[60px] h-[60px] sm:w-[90px] sm:h-[90px] md:w-[120px] md:h-[120px] rounded-full flex items-center justify-center bg-green-200 opacity-40 z-10 relative';
                     stone.innerText = '';
                 }
             }
 
+            // 트랙 이동 (정확한 중앙 이동)
             let offset = 0;
             if (currentStep === 0) {
-                offset = startBlock.offsetWidth - 40; 
+                // 출발지 우측 끝 정렬 (기기에 따른 조정값)
+                const alignAdjust = window.innerWidth < 640 ? 20 : 40;
+                offset = startBlock.offsetWidth - alignAdjust; 
             } else {
                 const currentWrapper = document.getElementById(`wrapper-${currentStep}`);
                 offset = stonesContainer.offsetLeft + currentWrapper.offsetLeft + (currentWrapper.offsetWidth / 2);
             }
             track.style.transform = `translateX(-${offset}px)`;
 
+            // +숫자 표시 이동 (돌 사이 중앙 위치)
             let plusLeft = 0;
             if (currentStep === 0) {
                 plusLeft = startBlock.offsetWidth;
@@ -315,6 +347,12 @@
                 plusLeft = currentWrapper.offsetLeft + currentWrapper.offsetWidth;
             }
             
+            // 플러스 표시의 위치 반응형
+            const plusTop = window.innerWidth < 640 ? '60px' : window.innerWidth < 768 ? '80px' : '110px';
+            const plusWidth = window.innerWidth < 640 ? '40px' : window.innerWidth < 768 ? '60px' : '80px';
+            
+            floatingPlus.style.top = plusTop;
+            floatingPlus.style.width = plusWidth;
             floatingPlus.style.left = `${plusLeft}px`;
             floatingPlus.querySelector('span').innerText = `+${currentMultiplier}`;
             floatingPlus.style.opacity = currentStep < totalSteps ? '1' : '0';
@@ -344,7 +382,8 @@
 
             shuffled.forEach(num => {
                 const btn = document.createElement('button');
-                btn.className = 'btn-choice bg-blue-500 hover:bg-blue-400 text-white text-4xl md:text-4xl lg:text-5xl font-bold w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full shadow-[0_6px_0_#1d4ed8] border-4 border-blue-300 flex items-center justify-center';
+                // 버튼 크기도 반응형으로 최적화
+                btn.className = 'btn-choice bg-blue-500 hover:bg-blue-400 text-white text-2xl sm:text-3xl md:text-4xl font-bold w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-full shadow-[0_4px_0_#1d4ed8] sm:shadow-[0_6px_0_#1d4ed8] border-2 sm:border-4 border-blue-300 flex items-center justify-center';
                 btn.innerText = num;
                 btn.onclick = () => handleChoice(num, targetAnswer, btn);
                 choicesDiv.appendChild(btn);
@@ -356,10 +395,10 @@
 
             if (selectedVal === targetVal) {
                 isAnimating = true;
-                
-                playRibbit(); // 소리 재생
-                
                 currentStep++;
+                
+                playRibbit();
+                
                 frog.classList.add('jump-anim');
                 ribbitText.classList.add('show-ribbit');
                 
@@ -373,16 +412,16 @@
                 }, 600);
 
             } else {
-                btnElement.classList.add('bg-red-400', 'shadow-[0_8px_0_#b91c1c]', 'border-red-300');
-                btnElement.classList.remove('bg-blue-500', 'shadow-[0_6px_0_#1d4ed8]', 'border-blue-300');
+                btnElement.classList.add('bg-red-400', 'shadow-[0_6px_0_#b91c1c]', 'border-red-300');
+                btnElement.classList.remove('bg-blue-500', 'shadow-[0_4px_0_#1d4ed8]', 'shadow-[0_6px_0_#1d4ed8]', 'border-blue-300');
                 btnElement.classList.add('shake-anim');
                 
                 const targetStone = document.getElementById(`stone-${currentStep + 1}`);
                 if (targetStone) targetStone.classList.add('shake-anim');
 
                 setTimeout(() => {
-                    btnElement.classList.remove('shake-anim', 'bg-red-400', 'shadow-[0_8px_0_#b91c1c]', 'border-red-300');
-                    btnElement.classList.add('bg-blue-500', 'shadow-[0_6px_0_#1d4ed8]', 'border-blue-300');
+                    btnElement.classList.remove('shake-anim', 'bg-red-400', 'shadow-[0_6px_0_#b91c1c]', 'border-red-300');
+                    btnElement.classList.add('bg-blue-500', 'shadow-[0_4px_0_#1d4ed8]', 'sm:shadow-[0_6px_0_#1d4ed8]', 'border-blue-300');
                     if (targetStone) targetStone.classList.remove('shake-anim');
                 }, 400);
             }
@@ -390,7 +429,7 @@
 
         function gameComplete() {
             showPanel('panel-result');
-            floatingPlus.style.opacity = '0'; 
+            floatingPlus.style.opacity = '0';
             
             var duration = 3 * 1000;
             var animationEnd = Date.now() + duration;
@@ -423,6 +462,19 @@
             });
             init(); 
         }
+
+        // 브라우저 리사이즈 시 징검다리 간격과 중앙 정렬 실시간 재계산
+        window.addEventListener('resize', () => {
+            if(document.getElementById('panel-game').classList.contains('opacity-100')) {
+                const newGap = getResponsiveGap();
+                if(gapSize !== newGap) {
+                    gapSize = newGap;
+                    stonesContainer.style.gap = `${gapSize}px`;
+                    stonesContainer.style.paddingLeft = `${gapSize}px`;
+                }
+                updateVisuals();
+            }
+        });
 
         window.onload = init;
     </script>
